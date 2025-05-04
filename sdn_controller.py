@@ -2,37 +2,55 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import networkx
-import mininet
-import ryu
+import networkx as nx
+import mininet as mn
+import ryu as ryu
 
+#main entry point and flow control for program
 def main():
     pass
 
-def generate_flow_tables():
+#network topology and flow generation functions
+def create_node(node_id, **kwargs):
     pass
 
-def generate_topology_visual():
+def create_link(node1_id, node2_id, **kwargs):
     pass
 
-def generate_network_flows():
+def remove_node(node_id):
     pass
 
-def generate_link_utilization():
+def remove_link(node1_id, node2_id):
     pass
 
-def handle_link_failure():
+def get_topology():
     pass
 
-def add_node():
+def visualize_network_state(active_flows, link_utilization):
     pass
 
-def remove_node():
+#Pathfinding computation and routing
+def compute_shortest_path(src_node_id, dst_node_id, weight='latency'):
     pass
 
-def simulate_link_failure():
+def generate_flow_entries(path, flow):
     pass
 
-def inject_traffic():
+def install_flow_rule(switch_id, match_criteria, actions, priority=100):
     pass
 
+def delete_flow_rule(switch_id, match_criteria):
+    pass
+
+def apply_routing_policy(flow):
+    pass
+
+#Failure handling
+def handle_link_failure(node1_id, node2_id):
+    pass
+
+def get_link_utilization(node1_id, node2_id):
+    pass
+
+def update_link_utilization(node1_id, node2_id, utilization):
+    pass
