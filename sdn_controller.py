@@ -14,6 +14,7 @@ class flow_table_entry:
     action = ""
     priority = 0
     timeout = 0
+    #flow table entry constructor
     def __init__(self, match={}, action=None, priority=0, timeout=None):
         self.match = match
         self.action = action
@@ -22,6 +23,12 @@ class flow_table_entry:
 
 class link:
     #link attributes
+    node1_id = 0
+    node2_id = 0
+    latency = 0
+    bandwidth = 0
+    utilization = 0
+    #link constructor
     def __init__(self, node1_id, node2_id, latency, bandwidth):
         self.node1_id = node1_id
         self.node2_id = node2_id
@@ -31,6 +38,11 @@ class link:
 
 class node:
     #node attributes
+    node_id = 0
+    type = ""
+    ip = ""
+    mac = ""
+    port = 0
     def __init__(self, node_id, type, ip, mac, port):
         self.node_id = node_id
         self.type = type
@@ -43,13 +55,32 @@ class node:
 
 class packet:
     #packet attributes
-    def __init__(self, src_ip=None, dst_ip=None, src_mac=None, dst_mac=None, protocol=None, payload=None):
+    src_ip = ""
+    dst_ip = ""
+    src_mac = ""
+    dst_mac = ""
+    protocol = ""
+    payload = ""
+    def __init__(self, src_ip=None, dst_ip=None, src_mac=None, 
+                 dst_mac=None, protocol=None, payload=None):
         self.src_ip = src_ip
         self.dst_ip = dst_ip
         self.src_mac = src_mac
         self.dst_mac = dst_mac
         self.protocol = protocol
         self.payload = payload
+
+#node list
+node_list = []
+
+#link list
+link_list = []
+
+#flow table
+flow_table = {}
+
+#active flows
+active_flows = {}
 
 #-----------------------------------------------------------------
 #main entry point and flow control for program
@@ -70,7 +101,8 @@ def main():
 
 #-----------------------------------------------------------------
 #network topology and flow generation functions
-def create_node(node_id, ip, mac, port, links, active_flows, link_utilization, **kwargs):
+def create_node(node_id, ip, mac, port, links, active_flows, 
+                                link_utilization, **kwargs):
     #create a new node object and initialize its attributes
     node = node()
     node.node_id = node_id
@@ -92,13 +124,36 @@ def create_link(node1_id, node2_id, **kwargs):
     return link
 
 def remove_node(node_id):
-    pass
+    #remove a node from the network topology
+    for node in node_list:
+        if node.node_id == node_id:
+            node_list.remove(node)
+            break
+    #remove all links associated with the node
+    for link in link_list:
+        if link.node1_id == node_id or link.node2_id == node_id:
+            link_list.remove(link)
+            break
+    #remove all flow entries associated with the node
+    for flow in active_flows:
+        if flow.src_node_id == node_id or flow.dst_node_id == node_id:
+            active_flows.remove(flow)
+            break
 
 def remove_link(node1_id, node2_id):
-    pass
+    #remove a link from the network topology
+    for link in link_list:
+        if (link.node1_id == node1_id and link.node2_id == node2_id) or \
+           (link.node1_id == node2_id and link.node2_id == node1_id):
+            link_list.remove(link)
+            break
 
 def get_topology():
-    pass
+    #return the current network topology
+    topology = {}
+    topology.append('nodes', node_list)
+    topology.append('links', link_list)
+    return topology
 
 def visualize_network_state(active_flows, link_utilization):
     pass
