@@ -10,6 +10,10 @@ import ryu as ryu
 
 class flow_table_entry:
     #flow table entry attributes
+    match = {}
+    action = ""
+    priority = 0
+    timeout = 0
     def __init__(self, match={}, action=None, priority=0, timeout=None):
         self.match = match
         self.action = action
@@ -24,6 +28,7 @@ class link:
         self.latency = latency
         self.bandwidth = bandwidth
         self.utilization = 0
+
 class node:
     #node attributes
     def __init__(self, node_id, type, ip, mac, port):
@@ -35,7 +40,7 @@ class node:
         self.links = []
         self.active_flows = []
         self.link_utilization = {}
-        
+
 class packet:
     #packet attributes
     def __init__(self, src_ip=None, dst_ip=None, src_mac=None, dst_mac=None, protocol=None, payload=None):
