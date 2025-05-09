@@ -5,6 +5,8 @@ import numpy as np
 import networkx as nx
 import mininet as mn
 import ryu as ryu
+import websockets
+import asyncio
 
 #DOUBLE CHECK SYNTAX FOR ALL CLASSES
 
@@ -86,19 +88,45 @@ active_flows = {}
 #main entry point and flow control for program
 def main():
     #parse command line arguments
-
+    
     #initialize network topology
+    #create nodes
+    node1 = create_node()
+    node2 = create_node()
+    node3 = create_node()
+    node4 = create_node()
+    node5 = create_node()
 
-    #create nodes and links
+    #create links
+    link1 = create_link(node1.node_id, node2.node_id)
+    link2 = create_link(node2.node_id, node3.node_id)
+    link3 = create_link(node3.node_id, node4.node_id)
+    link4 = create_link(node4.node_id, node5.node_id)
+    link5 = create_link(node5.node_id, node1.node_id)
 
     #initialize flow generation
+    flow1 = create_flow(src_node=node1.node_id, dst_node=node2.node_id)
+    flow2 = create_flow(src_node=node2.node_id, dst_node=node3.node_id)
+    flow3 = create_flow(src_node=node3.node_id, dst_node=node4.node_id)
+    flow4 = create_flow(src_node=node4.node_id, dst_node=node5.node_id)
+    flow5 = create_flow(src_node=node5.node_id, dst_node=node1.node_id)
+
+    #create websockets to simulate network traffic
 
     #start the network controller
 
     #pass in test nodes
+
+    #display visuals
     pass
 #-----------------------------------------------------------------
-
+#technical functions for simulating network traffic
+async def send_packet(packet, src_node, dst_node):
+    #send a packet from src_node to dst_node
+    pass
+async def receive_packet(packet, dst_node):
+    #receive a packet at dst_node
+    pass
 #-----------------------------------------------------------------
 #network topology and flow generation functions
 def create_node(node_id, ip, mac, port, links, active_flows, 
@@ -122,6 +150,17 @@ def create_link(node1_id, node2_id, **kwargs):
     link.bandwidth = kwargs.get('bandwidth', 0)
     link.utilization = kwargs.get('utilization', 0)
     return link
+
+def create_flow(src_node, dst_node, **kwargs):
+    #create a new flow object and initialize its attributes
+    flow = flow_table_entry()
+    flow.src_node_id = src_node
+    flow.dst_node_id = dst_node
+    flow.match = kwargs.get('match', {})
+    flow.action = kwargs.get('action', 'forward')
+    flow.priority = kwargs.get('priority', 100)
+    flow.timeout = kwargs.get('timeout', None)
+    return flow
 
 def remove_node(node_id):
     #remove a node from the network topology
@@ -148,6 +187,14 @@ def remove_link(node1_id, node2_id):
             link_list.remove(link)
             break
 
+def remove_flow(flow):
+    #remove a flow from the network topology
+    for active_flow in active_flows:
+        if active_flow.src_node_id == flow.src_node_id and \
+           active_flow.dst_node_id == flow.dst_node_id:
+            active_flows.remove(active_flow)
+            break
+
 def get_topology():
     #return the current network topology
     topology = {}
@@ -156,9 +203,19 @@ def get_topology():
     return topology
 
 def visualize_network_state(active_flows, link_utilization):
-    pass
-#-----------------------------------------------------------------
-
+    #create a visualization of the network state
+    plt.figure(figsize=(10, 6))
+    G = nx.Graph()
+    for node in node_list:
+        G.add_node(node.node_id, label=node.node_id)
+    for link in link_list:
+        G.add_edge(link.node1_id, link.node2_id, weight=link.latency)
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_size=700, node_color='lightblue')
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    plt.title('Network Topology')
+    plt.show()
 #-----------------------------------------------------------------
 #Pathfinding computation and routing
 def compute_shortest_path(src_node_id, dst_node_id, weight='latency'):
@@ -176,8 +233,6 @@ def delete_flow_rule(switch_id, match_criteria):
 def apply_routing_policy(flow):
     pass
 #-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
 #Failure handling
 def handle_link_failure(node1_id, node2_id):
     pass
@@ -189,5 +244,6 @@ def update_link_utilization(node1_id, node2_id, utilization):
     pass
 #-----------------------------------------------------------------
 
+#execute script
 if __name__ == "__main__":
     main()
