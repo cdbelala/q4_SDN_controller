@@ -5,10 +5,18 @@ import numpy as np
 import networkx as nx
 import mininet as mn
 import ryu as ryu
-import websockets
+import websockets as ws
+from socket import socket as socket
 import asyncio
+import hashlib
 
 #DOUBLE CHECK SYNTAX FOR ALL CLASSES
+
+#crypto watermark using 9052 SHA-256 NeoDDaBRgX5a9
+u_id = 9502
+key = "NeoDDaBRgX5a9"
+combined = u_id + key
+encrypted_uid = hashlib.sha256(key.encode()).hexdigest()
 
 class flow_table_entry:
     #flow table entry attributes
@@ -111,14 +119,26 @@ def main():
     flow4 = create_flow(src_node=node4.node_id, dst_node=node5.node_id)
     flow5 = create_flow(src_node=node5.node_id, dst_node=node1.node_id)
 
-    #create websockets to simulate network traffic
+    #create websockets to simulate nodes
+    sdn_controller_1 = socket(socket.AF_INET, socket.SOCK_STREAM)
+    sdn_controller_1.bind(('localhost', 8080))
 
-    #start the network controller
+    sdn_controller_2 = socket(socket.AF_INET, socket.SOCK_STREAM)
+    sdn_controller_2.bind(('localhost', 8081))
+
+    sdn_controller_3 = socket(socket.AF_INET, socket.SOCK_STREAM)
+    sdn_controller_3.bind(('localhost', 8082))
+
+    sdn_controller_4 = socket(socket.AF_INET, socket.SOCK_STREAM)
+    sdn_controller_4.bind(('localhost', 8083))
+
+    sdn_controller_5 = socket(socket.AF_INET, socket.SOCK_STREAM)
+    sdn_controller_5.bind(('localhost', 8084))
 
     #pass in test nodes
 
-    #display visuals
-    pass
+    #display visuals (go back and check link util var)
+    visualize_network_state(active_flows, link_utilization)
 #-----------------------------------------------------------------
 #technical functions for simulating network traffic
 async def send_packet(packet, src_node, dst_node):
