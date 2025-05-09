@@ -1,22 +1,17 @@
-import os
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
-import mininet as mn
+import mininet.net as mn
 import ryu as ryu
-import websockets as ws
-from socket import socket as socket
-import asyncio
 import hashlib
 
 #DOUBLE CHECK SYNTAX FOR ALL CLASSES
 
-#crypto watermark using 9052 SHA-256 NeoDDaBRgX5a9
-u_id = 9502
-key = "NeoDDaBRgX5a9"
-combined = u_id + key
-encrypted_uid = hashlib.sha256(key.encode()).hexdigest()
+#cryptographic watermark using 9052 SHA-256 NeoDDaBRgX5a9
+u_id = "9052"
+key = "$NeoDDaBRgX5a9\""
+combined_string = u_id + key
+encrypted_uid = hashlib.sha256(combined_string.encode()).hexdigest()
 
 class flow_table_entry:
     #flow table entry attributes
@@ -63,23 +58,6 @@ class node:
         self.active_flows = []
         self.link_utilization = {}
 
-class packet:
-    #packet attributes
-    src_ip = ""
-    dst_ip = ""
-    src_mac = ""
-    dst_mac = ""
-    protocol = ""
-    payload = ""
-    def __init__(self, src_ip=None, dst_ip=None, src_mac=None, 
-                 dst_mac=None, protocol=None, payload=None):
-        self.src_ip = src_ip
-        self.dst_ip = dst_ip
-        self.src_mac = src_mac
-        self.dst_mac = dst_mac
-        self.protocol = protocol
-        self.payload = payload
-
 #node list
 node_list = []
 
@@ -95,8 +73,7 @@ active_flows = {}
 #-----------------------------------------------------------------
 #main entry point and flow control for program
 def main():
-    #parse command line arguments
-    
+
     #initialize network topology
     #create nodes
     node1 = create_node()
@@ -119,34 +96,43 @@ def main():
     flow4 = create_flow(src_node=node4.node_id, dst_node=node5.node_id)
     flow5 = create_flow(src_node=node5.node_id, dst_node=node1.node_id)
 
-    #create websockets to simulate nodes
-    sdn_controller_1 = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sdn_controller_1.bind(('localhost', 8080))
+    #create a switch to direct traffic
+    net = mn.Mininet()
 
-    sdn_controller_2 = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sdn_controller_2.bind(('localhost', 8081))
+    #custom CLI
+    print("SDN Controller started. Welcome!")
+    while True:
 
-    sdn_controller_3 = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sdn_controller_3.bind(('localhost', 8082))
+        print("Available actions for user:")
+        print("1. Add node")
+        print("2. Remove node")
+        print("3. Add link")
+        print("4. Remove link")
+        print("5. Add flow")
+        print("6. Remove flow")
+        print("Enter user action (1-6):")
 
-    sdn_controller_4 = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sdn_controller_4.bind(('localhost', 8083))
-
-    sdn_controller_5 = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sdn_controller_5.bind(('localhost', 8084))
-
-    #pass in test nodes
-
-    #display visuals (go back and check link util var)
-    visualize_network_state(active_flows, link_utilization)
-#-----------------------------------------------------------------
-#technical functions for simulating network traffic
-async def send_packet(packet, src_node, dst_node):
-    #send a packet from src_node to dst_node
-    pass
-async def receive_packet(packet, dst_node):
-    #receive a packet at dst_node
-    pass
+        action = input()
+        match action:
+            case 1:
+                create_node()
+                print("Node created & added to node list.")
+            case 2:
+                remove_node()
+                print("Node removed from node list.")
+            case 3:
+                create_link()
+                print("Link created & added to link list.")
+            case 4:
+                remove_link()
+                print("Link removed from link list.")
+            case 5:
+                create_flow()
+                print("Flow created & added to flow table.")
+            case 6:
+                remove_flow()
+                print("Flow removed from flow table.")
+                
 #-----------------------------------------------------------------
 #network topology and flow generation functions
 def create_node(node_id, ip, mac, port, links, active_flows, 
@@ -161,6 +147,8 @@ def create_node(node_id, ip, mac, port, links, active_flows,
     node.links = links
     node.active_flows = active_flows
 
+    node_list.append(node)
+
 def create_link(node1_id, node2_id, **kwargs):
     #create a new link object and initialize its attributes
     link = link()
@@ -169,7 +157,8 @@ def create_link(node1_id, node2_id, **kwargs):
     link.latency = kwargs.get('latency', 0)
     link.bandwidth = kwargs.get('bandwidth', 0)
     link.utilization = kwargs.get('utilization', 0)
-    return link
+
+    link_list.append(link)
 
 def create_flow(src_node, dst_node, **kwargs):
     #create a new flow object and initialize its attributes
@@ -180,8 +169,7 @@ def create_flow(src_node, dst_node, **kwargs):
     flow.action = kwargs.get('action', 'forward')
     flow.priority = kwargs.get('priority', 100)
     flow.timeout = kwargs.get('timeout', None)
-    return flow
-
+    
 def remove_node(node_id):
     #remove a node from the network topology
     for node in node_list:
@@ -222,6 +210,7 @@ def get_topology():
     topology.append('links', link_list)
     return topology
 
+#double check later
 def visualize_network_state(active_flows, link_utilization):
     #create a visualization of the network state
     plt.figure(figsize=(10, 6))
@@ -239,9 +228,15 @@ def visualize_network_state(active_flows, link_utilization):
 #-----------------------------------------------------------------
 #Pathfinding computation and routing
 def compute_shortest_path(src_node_id, dst_node_id, weight='latency'):
-    pass
+    #compute the shortest path between two nodes using Dijkstra's algorithm
+    G = nx.Graph()
+    for link in link_list:
+        G.add_edge(link.node1_id, link.node2_id, weight=link.latency)
+    path = nx.dijkstra_path(G, src_node_id, dst_node_id, weight=weight)
+    return path
 
 def generate_flow_entries(path, flow):
+    #generate flow entries for each switch along the path
     pass
 
 def install_flow_rule(switch_id, match_criteria, actions, priority=100):
