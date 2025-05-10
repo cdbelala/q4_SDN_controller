@@ -12,10 +12,7 @@ node_list = []
 link_list = []
 
 #flow table
-flow_table = {}
-
-#active flows
-active_flows = {}
+flow_table = []
 
 #DOUBLE CHECK SYNTAX FOR ALL CLASSES
 
@@ -28,8 +25,8 @@ encrypted_uid = hashlib.sha256(uid_key.encode()).hexdigest()
 path = None
 class flow_table_entry:
     #flow table entry constructor
-    def __init__(self, match={}, action=None, priority=0, timeout=None):
-        self.match = match
+    def __init__(self, match=None, action=None, priority=100, timeout=None):
+        self.match = match if match is not None else {}
         self.action = action
         self.priority = priority
         self.timeout = timeout
@@ -73,7 +70,7 @@ def main():
     net = mn.Mininet(topo = sdnc_topo)
     
     #custom CLI
-    print("SDN Controller started. Welcome!")
+    print("SDN Controller started. Welcome! :)")
     print("Authored by Cooper Belala, Encrypted ID: " + encrypted_uid)
     while True:
         print("Available actions for user:")
@@ -84,7 +81,7 @@ def main():
         print("5. Add flow")
         print("6. Remove flow")
         print("7. Exit")
-        print("Enter user action (1-7):")
+        print("Enter user action (1-7): ")
         action = input()
         match action:
             case 1:
@@ -133,29 +130,33 @@ def main():
             case _:
                 print("Invalid action. Please try again.")
 
-    print("Controller closed. Goodbye!")
+    print("Controller closed. Goodbye! :(")
 #-----------------------------------------------------------------
 #network topology and flow generation functions
 def create_flow(src_node, dst_node, **kwargs):
-    #create a new flow object and initialize its attributes
-    flow = flow_table_entry()
-    flow.src_node_id = src_node
-    flow.dst_node_id = dst_node
-    flow.match = kwargs.get('match', {})
-    flow.action = kwargs.get('action', 'forward')
-    flow.priority = kwargs.get('priority', 100)
-    flow.timeout = kwargs.get('timeout', None)
+    #create a flow from src_node to dst_node
+    flow = {
+        'src': src_node,
+        'dst': dst_node,
+        'match': kwargs.get('match', {}),
+        'action': kwargs.get('action', {}),
+        'priority': kwargs.get('priority', 100),
+        'timeout': kwargs.get('timeout', None)
+    }
+    flow_table[flow['src'] + flow['dst']] = flow
+    flow_table.append(flow)
 
 def remove_flow(flow):
     #remove a flow from the network topology
-    for active_flow in active_flows:
-        if active_flow.src_node_id == flow.src_node_id and \
-           active_flow.dst_node_id == flow.dst_node_id:
-            active_flows.remove(active_flow)
+    for entry in flow_table:
+        if entry['src'] == flow['src'] and entry['dst'] == flow['dst']:
+            flow_table.remove(entry)
             break
+    else:
+        print("Flow not found.")
 
 #double check later
-def visualize_network_state(active_flows, link_utilization):
+def visualize_network_state(active_flows):
     #create a visualization of the network state
     plt.figure(figsize=(10, 6))
     G = nx.Graph()
@@ -185,23 +186,18 @@ def generate_flow_entries(path, flow):
     pass
 
 def install_flow_rule(switch_id, match_criteria, actions, priority=100):
-    pass
+    #install a flow rule on the switch
+    flow_rule = flow_table_entry(match=match_criteria, action=actions, priority=priority)
+    flow_table.append(flow_rule)
 
 def delete_flow_rule(switch_id, match_criteria):
-    pass
-
-def apply_routing_policy(flow):
-    pass
-#-----------------------------------------------------------------
-#Failure handling
-def handle_link_failure(node1_id, node2_id):
-    pass
-
-def get_link_utilization(node1_id, node2_id):
-    pass
-
-def update_link_utilization(node1_id, node2_id, utilization):
-    pass
+    #delete a flow rule from the switch
+    for entry in flow_table:
+        if entry.match == match_criteria:
+            flow_table.remove(entry)
+            break
+    else:
+        print("Flow rule not found.")
 #-----------------------------------------------------------------
 
 #execute script
