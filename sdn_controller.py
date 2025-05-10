@@ -2,61 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import mininet.net as mn
-import ryu as ryu
+from mininet.topo import Topo
 import hashlib
-
-#DOUBLE CHECK SYNTAX FOR ALL CLASSES
-
-#cryptographic watermark using 9052 SHA-256 NeoDDaBRgX5a9
-u_id = "9052"
-key = "$NeoDDaBRgX5a9\""
-combined_string = u_id + key
-encrypted_uid = hashlib.sha256(combined_string.encode()).hexdigest()
-
-class flow_table_entry:
-    #flow table entry attributes
-    match = {}
-    action = ""
-    priority = 0
-    timeout = 0
-    #flow table entry constructor
-    def __init__(self, match={}, action=None, priority=0, timeout=None):
-        self.match = match
-        self.action = action
-        self.priority = priority
-        self.timeout = timeout
-
-class link:
-    #link attributes
-    node1_id = 0
-    node2_id = 0
-    latency = 0
-    bandwidth = 0
-    utilization = 0
-    #link constructor
-    def __init__(self, node1_id, node2_id, latency, bandwidth):
-        self.node1_id = node1_id
-        self.node2_id = node2_id
-        self.latency = latency
-        self.bandwidth = bandwidth
-        self.utilization = 0
-
-class node:
-    #node attributes
-    node_id = 0
-    type = ""
-    ip = ""
-    mac = ""
-    port = 0
-    def __init__(self, node_id, type, ip, mac, port):
-        self.node_id = node_id
-        self.type = type
-        self.ip = ip
-        self.mac = mac
-        self.port = port
-        self.links = []
-        self.active_flows = []
-        self.link_utilization = {}
 
 #node list
 node_list = []
@@ -70,39 +17,65 @@ flow_table = {}
 #active flows
 active_flows = {}
 
+#DOUBLE CHECK SYNTAX FOR ALL CLASSES
+
+#cryptographic watermark using 9052 SHA-256 NeoDDaBRgX5a9
+u_id = "9052"
+key = "$NeoDDaBRgX5a9\""
+uid_key = u_id + key
+encrypted_uid = hashlib.sha256(uid_key.encode()).hexdigest()
+
+path = None
+class flow_table_entry:
+    #flow table entry constructor
+    def __init__(self, match={}, action=None, priority=0, timeout=None):
+        self.match = match
+        self.action = action
+        self.priority = priority
+        self.timeout = timeout
+    
+class Topology(Topo):
+    def build(self):
+        # Define your switches (5 in a ring)
+        s1 = self.addSwitch('s1')
+        s2 = self.addSwitch('s2')
+        s3 = self.addSwitch('s3')
+        s4 = self.addSwitch('s4')
+        s5 = self.addSwitch('s5')
+
+        # Define your hosts (5 hosts)
+        h1 = self.addHost('h1')
+        h2 = self.addHost('h2')
+        h3 = self.addHost('h3')
+        h4 = self.addHost('h4')
+        h5 = self.addHost('h5')
+
+        # Add links between switches to form a ring
+        self.addLink(s1, s2)
+        self.addLink(s2, s3)
+        self.addLink(s3, s4)
+        self.addLink(s4, s5)
+        self.addLink(s5, s1)
+
+        # Add links between hosts and switches (example: each host connected to a different switch)
+        self.addLink(h1, s1)
+        self.addLink(h2, s2)
+        self.addLink(h3, s3)
+        self.addLink(h4, s4)
+        self.addLink(h5, s5)
 #-----------------------------------------------------------------
 #main entry point and flow control for program
 def main():
-
     #initialize network topology
-    #create nodes
-    node1 = create_node()
-    node2 = create_node()
-    node3 = create_node()
-    node4 = create_node()
-    node5 = create_node()
+    sdnc_topo = Topo.build()
 
-    #create links
-    link1 = create_link(node1.node_id, node2.node_id)
-    link2 = create_link(node2.node_id, node3.node_id)
-    link3 = create_link(node3.node_id, node4.node_id)
-    link4 = create_link(node4.node_id, node5.node_id)
-    link5 = create_link(node5.node_id, node1.node_id)
-
-    #initialize flow generation
-    flow1 = create_flow(src_node=node1.node_id, dst_node=node2.node_id)
-    flow2 = create_flow(src_node=node2.node_id, dst_node=node3.node_id)
-    flow3 = create_flow(src_node=node3.node_id, dst_node=node4.node_id)
-    flow4 = create_flow(src_node=node4.node_id, dst_node=node5.node_id)
-    flow5 = create_flow(src_node=node5.node_id, dst_node=node1.node_id)
-
-    #create a switch to direct traffic
-    net = mn.Mininet()
-
+    #create switches to direct traffic
+    net = mn.Mininet(topo = sdnc_topo)
+    
     #custom CLI
     print("SDN Controller started. Welcome!")
+    print("Authored by Cooper Belala, Encrypted ID: " + encrypted_uid)
     while True:
-
         print("Available actions for user:")
         print("1. Add node")
         print("2. Remove node")
@@ -110,21 +83,43 @@ def main():
         print("4. Remove link")
         print("5. Add flow")
         print("6. Remove flow")
-        print("Enter user action (1-6):")
-
+        print("7. Exit")
+        print("Enter user action (1-7):")
         action = input()
         match action:
             case 1:
-                create_node()
+                print("Enter node name to add: ")
+                node_name = input()
+                net.addHost(node_name)
+                node_list.append(node_name)
                 print("Node created & added to node list.")
             case 2:
-                remove_node()
+                print("Enter node name to remove: ")
+                node_name = input()
+                for node in node_list:
+                    if node == node_id:
+                        node_list.remove(node)                        
+                    else:
+                        print("Node not found.")
                 print("Node removed from node list.")
             case 3:
-                create_link()
+                print("Enter name of node to link: ")
+                node1_name = input()
+                print("Enter name of node to be linked: ")
+                node2_name = input()
+                net.addLink(node1_name, node2_name)
                 print("Link created & added to link list.")
             case 4:
-                remove_link()
+                print("Enter name of node to unlink: ")
+                node1_name = input()
+                print("Enter name of node to be unlinked: ")
+                node2_name = input()
+                for link in link_list:
+                    if link.node1_id == node1_name and link.node2_id == node2_name:
+                        link_list.remove(link)
+                        break
+                else:
+                    print("Link not found.")
                 print("Link removed from link list.")
             case 5:
                 create_flow()
@@ -132,34 +127,15 @@ def main():
             case 6:
                 remove_flow()
                 print("Flow removed from flow table.")
-                
+            case 7:
+                print("Exiting SDN Controller.")
+                break
+            case _:
+                print("Invalid action. Please try again.")
+
+    print("Controller closed. Goodbye!")
 #-----------------------------------------------------------------
 #network topology and flow generation functions
-def create_node(node_id, ip, mac, port, links, active_flows, 
-                                link_utilization, **kwargs):
-    #create a new node object and initialize its attributes
-    node = node()
-    node.node_id = node_id
-    node.type = kwargs.get('type', 'host')
-    node.ip = ip
-    node.mac = mac
-    node.port = port
-    node.links = links
-    node.active_flows = active_flows
-
-    node_list.append(node)
-
-def create_link(node1_id, node2_id, **kwargs):
-    #create a new link object and initialize its attributes
-    link = link()
-    link.node1_id = node1_id
-    link.node2_id = node2_id
-    link.latency = kwargs.get('latency', 0)
-    link.bandwidth = kwargs.get('bandwidth', 0)
-    link.utilization = kwargs.get('utilization', 0)
-
-    link_list.append(link)
-
 def create_flow(src_node, dst_node, **kwargs):
     #create a new flow object and initialize its attributes
     flow = flow_table_entry()
@@ -169,31 +145,6 @@ def create_flow(src_node, dst_node, **kwargs):
     flow.action = kwargs.get('action', 'forward')
     flow.priority = kwargs.get('priority', 100)
     flow.timeout = kwargs.get('timeout', None)
-    
-def remove_node(node_id):
-    #remove a node from the network topology
-    for node in node_list:
-        if node.node_id == node_id:
-            node_list.remove(node)
-            break
-    #remove all links associated with the node
-    for link in link_list:
-        if link.node1_id == node_id or link.node2_id == node_id:
-            link_list.remove(link)
-            break
-    #remove all flow entries associated with the node
-    for flow in active_flows:
-        if flow.src_node_id == node_id or flow.dst_node_id == node_id:
-            active_flows.remove(flow)
-            break
-
-def remove_link(node1_id, node2_id):
-    #remove a link from the network topology
-    for link in link_list:
-        if (link.node1_id == node1_id and link.node2_id == node2_id) or \
-           (link.node1_id == node2_id and link.node2_id == node1_id):
-            link_list.remove(link)
-            break
 
 def remove_flow(flow):
     #remove a flow from the network topology
@@ -202,13 +153,6 @@ def remove_flow(flow):
            active_flow.dst_node_id == flow.dst_node_id:
             active_flows.remove(active_flow)
             break
-
-def get_topology():
-    #return the current network topology
-    topology = {}
-    topology.append('nodes', node_list)
-    topology.append('links', link_list)
-    return topology
 
 #double check later
 def visualize_network_state(active_flows, link_utilization):
@@ -237,6 +181,7 @@ def compute_shortest_path(src_node_id, dst_node_id, weight='latency'):
 
 def generate_flow_entries(path, flow):
     #generate flow entries for each switch along the path
+    flow_entries = []
     pass
 
 def install_flow_rule(switch_id, match_criteria, actions, priority=100):
