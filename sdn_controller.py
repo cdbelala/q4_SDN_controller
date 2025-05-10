@@ -14,11 +14,9 @@ link_list = []
 #flow table
 flow_table = []
 
-#DOUBLE CHECK SYNTAX FOR ALL CLASSES
-
-#cryptographic watermark using 9052 SHA-256 NeoDDaBRgX5a9
+#cryptographic watermark
 u_id = "9052"
-key = "$NeoDDaBRgX5a9\""
+key = "$NeoDDaBRgX5a9"
 uid_key = u_id + key
 encrypted_uid = hashlib.sha256(uid_key.encode()).hexdigest()
 
@@ -155,7 +153,6 @@ def remove_flow(flow):
     else:
         print("Flow not found.")
 
-#double check later
 def visualize_network_state(active_flows):
     #create a visualization of the network state
     plt.figure(figsize=(10, 6))
@@ -179,11 +176,6 @@ def compute_shortest_path(src_node_id, dst_node_id, weight='latency'):
         G.add_edge(link.node1_id, link.node2_id, weight=link.latency)
     path = nx.dijkstra_path(G, src_node_id, dst_node_id, weight=weight)
     return path
-
-def generate_flow_entries(path, flow):
-    #generate flow entries for each switch along the path
-    flow_entries = []
-    pass
 
 def install_flow_rule(switch_id, match_criteria, actions, priority=100):
     #install a flow rule on the switch
